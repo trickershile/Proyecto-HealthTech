@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Animaciones de ondas */
+@keyframes pulse-ring {
+  0% { transform: scale(.33); }
+  80%, 100% { opacity: 0; }
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(.8); }
+  50% { transform: scale(1); }
+  100% { transform: scale(.8); }
+}

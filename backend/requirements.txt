@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+supabase<2.26.0
+groq
+sentence-transformers
+requests
+beautifulsoup4
+duckduckgo-search
+python-dotenv
+langchain-text-splitters
+openpyxl
