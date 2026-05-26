@@ -13,3 +13,6 @@ yarn-error.log*
 .git
 .vscode
 .trae
+venv/
+**/venv/
+.venv/
