@@ -125,7 +125,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 self._last_seen.pop(k, None)
 
 
-app.add_middleware(RateLimitMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 
 
@@ -145,6 +144,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
 
 
 app.add_middleware(MetricsMiddleware)
+app.add_middleware(RateLimitMiddleware)
 
 
 @app.get("/metrics")
