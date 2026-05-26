@@ -178,7 +178,7 @@ async def chat_stream(payload: ConsultarRequest) -> StreamingResponse:
                 fallback_message
                 if is_rate_limit
                 else (
-                    raw
+                    f"{type(exc).__name__}: {raw}".strip(": ").strip()
                     if expose and raw
                     else "Ocurrió un problema temporal al procesar su consulta. Por favor, intente nuevamente en unos minutos."
                 )
