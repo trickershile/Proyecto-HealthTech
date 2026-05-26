@@ -6,23 +6,27 @@ interface SearchBarProps {
   onSearch: (query: string) => void;
   isListening?: boolean;
   onVoiceClick?: () => void;
-  mode?: 'paciente' | 'alumno';
+  showMic?: boolean;
+  showCounter?: boolean;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ onSearch, isListening = false, onVoiceClick, mode = 'paciente' }) => {
+const SearchBar: React.FC<SearchBarProps> = ({
+  onSearch,
+  isListening = false,
+  onVoiceClick,
+  showMic = true,
+  showCounter = true,
+}) => {
   const [query, setQuery] = useState("");
-  const isAlumno = mode === 'alumno';
+  const maxLen = 200;
 
-  const idleIconColor = isAlumno ? 'text-slate-400 group-focus-within:text-slate-200' : 'text-slate-400 group-focus-within:text-emerald-200';
-  const listeningIconColor = isAlumno ? 'text-slate-200 animate-pulse' : 'text-emerald-300 animate-pulse';
-  const inputBase = isAlumno
-    ? 'bg-black/60 border-white/10 text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-slate-500/40 focus:border-slate-400/60'
-    : 'bg-white/5 border-emerald-500/15 text-slate-100 placeholder-emerald-100/45 focus:ring-2 focus:ring-emerald-500/35 focus:border-emerald-400/40';
-  const inputListening = isAlumno
-    ? 'border-slate-400/50 ring-2 ring-slate-500/25'
-    : 'border-emerald-400/50 ring-2 ring-emerald-500/25';
-  const micIdle = isAlumno ? 'text-slate-400 hover:text-slate-200' : 'text-slate-400 hover:text-emerald-200';
-  const micListening = isAlumno ? 'text-slate-200 animate-bounce' : 'text-emerald-300 animate-bounce';
+  const idleIconColor = 'text-slate-400 group-focus-within:text-emerald-200';
+  const listeningIconColor = 'text-emerald-300 animate-pulse';
+  const inputBase =
+    'bg-white/5 border-emerald-500/15 text-slate-100 placeholder-emerald-100/45 focus:ring-2 focus:ring-emerald-500/35 focus:border-emerald-400/40';
+  const inputListening = 'border-emerald-400/50 ring-2 ring-emerald-500/25';
+  const micIdle = 'text-slate-400 hover:text-emerald-200';
+  const micListening = 'text-emerald-300 animate-bounce';
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,18 +44,29 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, isListening = false, on
       <input
         type="text"
         value={query}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
-        className={`block w-full pl-10 pr-12 py-3 border rounded-2xl focus:outline-none backdrop-blur-xl transition-all ${inputBase} ${isListening ? inputListening : ''}`}
-        placeholder={isListening ? "Escuchando..." : "¿Qué medicamento buscas?"}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value.slice(0, maxLen))}
+        className={`block w-full pl-10 pr-12 py-4 border rounded-2xl focus:outline-none backdrop-blur-xl transition-all ${inputBase} ${isListening ? inputListening : ''}`}
+        placeholder={isListening ? "Escuchando..." : "Ej: ¿Para qué sirve la Loratadina? o ingrese un medicamento..."}
+        maxLength={maxLen}
+        aria-label="Pregunta farmacológica"
       />
+
+      {showCounter ? (
+        <div className="absolute inset-y-0 right-10 pr-2 flex items-center pointer-events-none text-[10px] text-white/45 tabular-nums">
+          {maxLen - query.length}
+        </div>
+      ) : null}
       
-      <button
-        type="button"
-        className="absolute inset-y-0 right-0 pr-3 flex items-center"
-        onClick={onVoiceClick}
-      >
-        <Mic className={`h-5 w-5 ${isListening ? micListening : micIdle} transition-colors`} />
-      </button>
+      {showMic ? (
+        <button
+          type="button"
+          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+          onClick={onVoiceClick}
+          aria-label={isListening ? "Detener micrófono" : "Hablar por micrófono"}
+        >
+          <Mic className={`h-5 w-5 ${isListening ? micListening : micIdle} transition-colors`} />
+        </button>
+      ) : null}
     </form>
   );
 };

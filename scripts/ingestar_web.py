@@ -6,50 +6,13 @@ from pathlib import Path
 
 import requests
 from bs4 import BeautifulSoup
-from dotenv import load_dotenv
-from supabase import Client, create_client
 
 _PROJECT_ROOT = str(Path(__file__).resolve().parents[1])
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-from backend.app.services.local_embeddings import embed_texts as embed_texts_local
-
-
-def _clean_env_value(value: str | None) -> str:
-    if not value:
-        return ""
-    cleaned = value.strip().strip('"').strip("'")
-    if "(" in cleaned:
-        cleaned = cleaned.split("(", 1)[0].strip()
-    return cleaned
-
-
-def _load_env() -> None:
-    project_root = Path(__file__).resolve().parents[1]
-    env_path = project_root / ".env"
-    env_local_path = project_root / ".env.local"
-    if env_path.exists():
-        load_dotenv(dotenv_path=env_path, override=False)
-    if env_local_path.exists():
-        load_dotenv(dotenv_path=env_local_path, override=True)
-
-
-def _get_supabase_client() -> Client:
-    supabase_url = _clean_env_value(os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL"))
-    supabase_key = (
-        _clean_env_value(os.getenv("SUPABASE_SERVICE_ROLE_KEY"))
-        or _clean_env_value(os.getenv("SUPABASE_SERVICE_KEY"))
-        or _clean_env_value(os.getenv("SUPABASE_KEY"))
-        or _clean_env_value(os.getenv("SUPABASE_ANON_KEY"))
-        or _clean_env_value(os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY"))
-    )
-
-    if not supabase_url or not supabase_key:
-        raise RuntimeError("Faltan SUPABASE_URL y/o SUPABASE_SERVICE_ROLE_KEY en .env/.env.local")
-    if not supabase_key.startswith("eyJ"):
-        raise RuntimeError("La key de Supabase no parece válida (debería empezar por eyJ)")
-    return create_client(supabase_url, supabase_key)
+from backend.app.config.env import clean_env_value, get_supabase_client, load_env
+from backend.app.embeddings.local_embeddings import embed_texts as embed_texts_local
 
 
 def _normalize_spaces(text: str) -> str:
@@ -117,15 +80,17 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("url")
     parser.add_argument("--nombre", default="")
-    parser.add_argument("--nivel", default="ambos", choices=["ambos", "paciente", "alumno"])
+    parser.add_argument("--table", default="")
+    parser.add_argument("--nivel", default="ambos", choices=["ambos", "paciente"])
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--chunk-size", type=int, default=900)
     parser.add_argument("--chunk-overlap", type=int, default=100)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
-    _load_env()
-    supabase = _get_supabase_client()
+    load_env()
+    supabase = get_supabase_client()
+    table = (args.table or clean_env_value(os.getenv("SUPABASE_RAG_TABLE")) or "documentos_medicos").strip()
 
     title, raw_text = extraer_texto_web(args.url)
     nombre = args.nombre.strip() or title
@@ -152,7 +117,7 @@ def main() -> int:
                     "embedding": v,
                 }
             )
-        supabase.table("documentos_medicos").insert(payloads).execute()
+        supabase.table(table).insert(payloads).execute()
         inserted += len(payloads)
         print(f"insertados={inserted}/{len(texts)}")
 

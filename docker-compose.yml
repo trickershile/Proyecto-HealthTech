@@ -1,0 +1,54 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env.local
+    environment:
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY requerido}
+      INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:?INTERNAL_JWT_SECRET requerido}
+      GROQ_API_KEY: ${GROQ_API_KEY:?GROQ_API_KEY requerido}
+      SUPABASE_URL: ${SUPABASE_URL:?SUPABASE_URL requerido}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?SUPABASE_SERVICE_ROLE_KEY requerido}
+      EXPOSE_ERRORS: ${EXPOSE_ERRORS:-0}
+      ENABLE_HSTS: ${ENABLE_HSTS:-1}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - healthtech-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    env_file:
+      - .env.local
+    environment:
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY requerido}
+      INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:?INTERNAL_JWT_SECRET requerido}
+      BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
+      EXPOSE_ERRORS: ${EXPOSE_ERRORS:-0}
+      ENABLE_HSTS: ${ENABLE_HSTS:-1}
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - healthtech-net
+
+networks:
+  healthtech-net:
+    driver: bridge

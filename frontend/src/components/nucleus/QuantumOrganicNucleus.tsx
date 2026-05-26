@@ -8,7 +8,7 @@
  const MOUSE_LERP = 0.08;
  const REACTION_FORCE = 0.45;
  
- const QuantumOrganicNucleus: React.FC<{ state: string, audioLevel?: number, mode?: 'paciente' | 'alumno', doseMissedHours?: number | null, labPhase?: 'idle' | 'absorption' | 'distribution' | 'metabolism' | 'excretion' | 'interaction', interactionStrength?: number, halfLifeHours?: number | null }> = ({ state, audioLevel = 0, mode = 'paciente', doseMissedHours = null, labPhase = 'idle', interactionStrength = 0, halfLifeHours = null }) => { 
+ const QuantumOrganicNucleus: React.FC<{ state: string, audioLevel?: number, doseMissedHours?: number | null, labPhase?: 'idle' | 'absorption' | 'distribution' | 'metabolism' | 'excretion' | 'interaction', interactionStrength?: number, halfLifeHours?: number | null }> = ({ state, audioLevel = 0, doseMissedHours = null, labPhase = 'idle', interactionStrength = 0, halfLifeHours = null }) => { 
    const mountRef = useRef<HTMLDivElement>(null); 
    const mouseRef = useRef(new THREE.Vector2(0, 0)); 
    const lerpMouseRef = useRef(new THREE.Vector2(0, 0));
@@ -29,7 +29,6 @@
      time: number;
      lastTime: number;
      latestState: string;
-     latestMode: 'paciente' | 'alumno';
      latestDoseMissedHours: number | null;
      latestLabPhase: 'idle' | 'absorption' | 'distribution' | 'metabolism' | 'excretion' | 'interaction';
      latestInteractionStrength: number;
@@ -50,7 +49,6 @@
      time: 0,
      lastTime: performance.now(),
      latestState: state,
-     latestMode: mode,
      latestDoseMissedHours: doseMissedHours,
      latestLabPhase: labPhase,
      latestInteractionStrength: interactionStrength,
@@ -271,7 +269,7 @@
        if (currentState === 'talking') timeSpeed = 0.0036; 
        else if (currentState === 'warning') timeSpeed = 0.014;
        else if (currentState === 'alert') timeSpeed = 0.02; 
-       if (refs.current.latestMode === 'paciente') timeSpeed *= 0.65;
+       timeSpeed *= 0.65;
        refs.current.time += timeSpeed; 
        const time = refs.current.time;
  
@@ -290,7 +288,7 @@
        }
  
        const baseAudioTarget = currentState === 'talking' ? refs.current.latestAudio * 0.35 : refs.current.latestAudio;
-       const audioTarget = refs.current.latestMode === 'paciente' ? baseAudioTarget * 0.6 : baseAudioTarget;
+      const audioTarget = baseAudioTarget * 0.6;
        const audioFollow = currentState === 'talking' ? 0.22 : 0.08;
        refs.current.smoothedAudio += (audioTarget - refs.current.smoothedAudio) * audioFollow;
        const smoothAudio = refs.current.smoothedAudio;
@@ -311,7 +309,7 @@
          targetScale = 1.03; 
          currentReactionForce = REACTION_FORCE * 1.2; 
        } 
-       if (refs.current.latestMode === 'paciente') currentReactionForce *= 0.75;
+       currentReactionForce *= 0.75;
  
        // 3. EL AMORTIGUADOR (Signal Damping) 
        if (points) {
@@ -328,26 +326,17 @@
        // Actualizar Uniforms
        if (nucleusMaterial) {
          const hours = refs.current.latestDoseMissedHours;
-         const drop = refs.current.latestMode === 'paciente' && typeof hours === 'number' && Number.isFinite(hours)
+         const drop = typeof hours === 'number' && Number.isFinite(hours)
            ? Math.min(0.65, (Math.max(0, hours) / 12) * 0.55)
            : 0;
          const halfLife = refs.current.latestHalfLifeHours;
-         const isExcreting = refs.current.latestMode === 'alumno' && refs.current.latestLabPhase === 'excretion';
-         const decay = isExcreting
-           ? Math.exp(-Math.max(0, refs.current.floatingPhaseT) / Math.max(0.5, (typeof halfLife === 'number' && Number.isFinite(halfLife)) ? halfLife : 6))
-           : 1;
+         const decay = 1;
          const brightness = Math.max(0.18, (1 - drop) * decay);
          refs.current.splitMix += ((Math.max(0, Math.min(1, refs.current.latestInteractionStrength))) - refs.current.splitMix) * 0.12;
-         const phase = refs.current.latestLabPhase;
-         const isAlumno = refs.current.latestMode === 'alumno';
          const baseNucleusColor = refs.current.baseNucleusColor;
          const baseAuraColor = refs.current.baseAuraColor;
          if (baseNucleusColor) nucleusMaterial.uniforms.color.value.copy(baseNucleusColor);
          if (baseAuraColor && auraMaterial) auraMaterial.uniforms.color.value.copy(baseAuraColor);
-         if (isAlumno && phase === 'metabolism') {
-           nucleusMaterial.uniforms.color.value.copy(nucleusMaterial.uniforms.colorB.value);
-           if (auraMaterial) auraMaterial.uniforms.color.value.copy(nucleusMaterial.uniforms.colorA.value);
-         }
          nucleusMaterial.uniforms.time.value = time;
          nucleusMaterial.uniforms.mouse.value.copy(m);
          nucleusMaterial.uniforms.reactionForce.value = currentReactionForce * (1 + refs.current.latestInteractionStrength * 0.9);
@@ -377,7 +366,7 @@
          const phase = refs.current.latestLabPhase;
          if (base && vel) {
            const tPrev = refs.current.floatingPhaseT;
-           refs.current.floatingPhaseT = phase === 'idle' ? 0 : (tPrev + (refs.current.latestMode === 'paciente' ? 0.01 : 0.016));
+           refs.current.floatingPhaseT = phase === 'idle' ? 0 : (tPrev + 0.01);
            const phaseT = refs.current.floatingPhaseT;
            for (let i = 0; i < FLOATING_PARTICLES_COUNT; i++) {
              const ix = i * 3;
@@ -450,18 +439,17 @@
      refs.current.latestState = state;
      const isAlert = state === 'alert';
      const isTalking = state === 'talking';
-     const isPatient = mode === 'paciente';
      const mainColor = new THREE.Color(
        isAlert ? 0xff1111 :
-       state === 'warning' ? (isPatient ? 0xffd6a5 : 0xffaa00) :
-       isTalking ? (isPatient ? 0x8af8e2 : 0x00ffff) :
-       (isPatient ? 0x7adcff : 0x00cccc)
+      state === 'warning' ? 0xffd6a5 :
+      isTalking ? 0x8af8e2 :
+      0x7adcff
      );
      const coreColor = new THREE.Color(isAlert ? 0x440000 : 0x001a1a);
      const particleColor = new THREE.Color(
        isAlert ? 0xff4444 :
-       state === 'warning' ? (isPatient ? 0xffe3c2 : 0xffcc66) :
-       (isPatient ? 0xc6fff2 : 0x44ffff)
+      state === 'warning' ? 0xffe3c2 :
+      0xc6fff2
      );
  
      nucleusMaterial.uniforms.color.value.copy(mainColor);
@@ -472,16 +460,12 @@
      
      if (coreMesh) (coreMesh.material as THREE.MeshBasicMaterial).color.copy(coreColor);
      if (floatingPoints) (floatingPoints.material as THREE.PointsMaterial).color.copy(particleColor);
-   }, [mode, state]);
+  }, [state]);
  
    useEffect(() => {
      refs.current.latestAudio = audioLevel;
    }, [audioLevel]);
  
-  useEffect(() => {
-    refs.current.latestMode = mode;
-  }, [mode]);
-
   useEffect(() => {
     refs.current.latestDoseMissedHours = doseMissedHours;
   }, [doseMissedHours]);
@@ -503,15 +487,15 @@
     state === 'alert'
       ? '239,68,68'
       : state === 'warning'
-        ? (mode === 'paciente' ? '251,191,36' : '249,115,22')
-        : (mode === 'paciente' ? '52,211,153' : '34,211,238');
+        ? '251,191,36'
+        : '52,211,153';
 
    return (
      <div className="relative flex items-center justify-center">
         <div className={`absolute w-80 h-80 rounded-full blur-[110px] transition-all duration-300 
           ${state === 'alert' ? 'bg-red-600 opacity-30 scale-125' : 
-            state === 'talking' ? (mode === 'paciente' ? 'bg-emerald-300 opacity-30 scale-110' : 'bg-cyan-400 opacity-40 scale-110') : 
-            (mode === 'paciente' ? 'bg-emerald-400 opacity-12' : 'bg-cyan-600 opacity-15')}`} 
+            state === 'talking' ? 'bg-emerald-300 opacity-30 scale-110' : 
+            'bg-emerald-400 opacity-12'}`} 
           style={{
             transform: `scale(${1 + audioLevel * 0.5})`,
             opacity: 0.1 + audioLevel * 0.5

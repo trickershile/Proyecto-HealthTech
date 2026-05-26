@@ -30,3 +30,76 @@ body {
   50% { transform: scale(1); }
   100% { transform: scale(.8); }
 }
+
+@page {
+  size: A4;
+  margin: 14mm;
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-ficha-root,
+  .print-ficha-root * {
+    visibility: visible !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-ficha-root {
+    position: fixed;
+    inset: 0;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  .print-ficha-header {
+    border: 2px solid #0284c7;
+    border-radius: 12px;
+    padding: 12px 14px;
+    background: #f0f9ff;
+  }
+
+  .print-ficha-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #0c4a6e;
+    letter-spacing: 0.02em;
+  }
+
+  .print-ficha-root section {
+    border: 1px solid #0f172a !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-radius: 12px !important;
+    padding: 12px 14px !important;
+  }
+
+  .print-ficha-root pre {
+    color: #0f172a !important;
+    font-size: 12.5px !important;
+    line-height: 1.45 !important;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+  }
+
+  .print-ficha-footer {
+    border-top: 1px solid #94a3b8;
+    padding-top: 10px;
+    font-size: 10px;
+    color: #334155;
+  }
+}
