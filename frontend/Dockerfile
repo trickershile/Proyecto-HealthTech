@@ -4,8 +4,9 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Copiar archivos de dependencias
-COPY package.json package-lock.json* ./
-RUN npm install
+COPY package.json package-lock.json ./
+ENV NODE_ENV=development
+RUN npm ci
 
 # Etapa 2: Construcción de la aplicación
 FROM node:20-alpine AS builder
@@ -17,6 +18,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED 1
 
 RUN npm run build
+RUN npm prune --omit=dev
 
 # Etapa 3: Ejecución
 FROM node:20-alpine AS runner
