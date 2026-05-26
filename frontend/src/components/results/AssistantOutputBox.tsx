@@ -273,13 +273,13 @@ export default function AssistantOutputBox({
         <div className="no-print mt-3 flex flex-wrap items-center gap-2">
           <button
             type="button"
-            disabled={!canSpeak || !(hasStructured ? structuredResponse?.layout === "ficha" && structuredResponse.content.para_que_sirve : blocks.block1)}
+            disabled={!canSpeak || !(hasStructured ? structuredResponse?.layout === "ficha" && structuredResponse.content.para_que_sirve : blocks?.block1)}
             onClick={() => {
               if (hasStructured && structuredResponse?.layout === "ficha") {
                 speak(`Para qué sirve. ${structuredResponse.content.para_que_sirve}`);
                 return;
               }
-              speak(`Para qué sirve. ${blocks.block1}`);
+              speak(`Para qué sirve. ${blocks?.block1 || ""}`);
             }}
             className="min-h-[44px] rounded-2xl border border-emerald-400/35 bg-[#0b1628] px-4 text-[12px] font-semibold text-white/90 shadow-sm hover:bg-[#0d1b31] active:bg-[#091221] disabled:opacity-40"
           >
@@ -288,13 +288,13 @@ export default function AssistantOutputBox({
           <>
             <button
                 type="button"
-                disabled={!canSpeak || !(hasStructured ? structuredResponse?.layout === "ficha" && structuredResponse.content.dosis : blocks.block2)}
+                disabled={!canSpeak || !(hasStructured ? structuredResponse?.layout === "ficha" && structuredResponse.content.dosis : blocks?.block2)}
                 onClick={() => {
                   if (hasStructured && structuredResponse?.layout === "ficha") {
                     speak(`Dosis terapéutica y máxima. ${structuredResponse.content.dosis}`);
                     return;
                   }
-                  speak(`Dosis terapéutica y máxima. ${blocks.block2}`);
+                  speak(`Dosis terapéutica y máxima. ${blocks?.block2 || ""}`);
                 }}
                 className="min-h-[44px] rounded-2xl border border-sky-400/35 bg-[#0b1628] px-4 text-[12px] font-semibold text-white/90 shadow-sm hover:bg-[#0d1b31] active:bg-[#091221] disabled:opacity-40"
               >
@@ -302,13 +302,13 @@ export default function AssistantOutputBox({
               </button>
               <button
                 type="button"
-                disabled={!canSpeak || !(hasStructured ? structuredResponse?.layout === "ficha" && structuredResponse.content.precauciones : blocks.block3)}
+                disabled={!canSpeak || !(hasStructured ? structuredResponse?.layout === "ficha" && structuredResponse.content.precauciones : blocks?.block3)}
                 onClick={() => {
                   if (hasStructured && structuredResponse?.layout === "ficha") {
                     speak(`Precauciones. ${structuredResponse.content.precauciones}`);
                     return;
                   }
-                  speak(`Precauciones. ${blocks.block3}`);
+                  speak(`Precauciones. ${blocks?.block3 || ""}`);
                 }}
                 className="min-h-[44px] rounded-2xl border border-amber-400/35 bg-[#0b1628] px-4 text-[12px] font-semibold text-white/90 shadow-sm hover:bg-[#0d1b31] active:bg-[#091221] disabled:opacity-40"
               >
@@ -316,13 +316,13 @@ export default function AssistantOutputBox({
               </button>
               <button
                 type="button"
-                disabled={!canSpeak || !(hasStructured ? structuredResponse?.layout === "ficha" && structuredResponse.content.dieta : blocks.block4)}
+                disabled={!canSpeak || !(hasStructured ? structuredResponse?.layout === "ficha" && structuredResponse.content.dieta : blocks?.block4)}
                 onClick={() => {
                   if (hasStructured && structuredResponse?.layout === "ficha") {
                     speak(`Dieta mientras lo toma. ${structuredResponse.content.dieta}`);
                     return;
                   }
-                  speak(`Dieta mientras lo toma. ${blocks.block4}`);
+                  speak(`Dieta mientras lo toma. ${blocks?.block4 || ""}`);
                 }}
                 className="min-h-[44px] rounded-2xl border border-emerald-400/30 bg-[#0b1628] px-4 text-[12px] font-semibold text-white/90 shadow-sm hover:bg-[#0d1b31] active:bg-[#091221] disabled:opacity-40"
               >
@@ -330,13 +330,13 @@ export default function AssistantOutputBox({
               </button>
               <button
                 type="button"
-                disabled={!canSpeak || !(hasStructured ? structuredResponse?.layout === "ficha" && structuredResponse.content.efectos : blocks.block5)}
+                disabled={!canSpeak || !(hasStructured ? structuredResponse?.layout === "ficha" && structuredResponse.content.efectos : blocks?.block5)}
                 onClick={() => {
                   if (hasStructured && structuredResponse?.layout === "ficha") {
                     speak(`Efectos secundarios. ${structuredResponse.content.efectos}`);
                     return;
                   }
-                  speak(`Efectos secundarios. ${blocks.block5}`);
+                  speak(`Efectos secundarios. ${blocks?.block5 || ""}`);
                 }}
                 className="min-h-[44px] rounded-2xl border border-red-400/35 bg-[#0b1628] px-4 text-[12px] font-semibold text-white/90 shadow-sm hover:bg-[#0d1b31] active:bg-[#091221] disabled:opacity-40"
               >
