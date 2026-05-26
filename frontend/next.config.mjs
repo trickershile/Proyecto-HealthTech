@@ -3,6 +3,18 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  async rewrites() {
+    const isProd = process.env.NODE_ENV === "production";
+    const renderBase = "https://healthtech-backend-s4pq.onrender.com";
+    const backendBase = isProd ? renderBase : "";
+    if (!backendBase) return [];
+    return [
+      {
+        source: "/gateway/:path*",
+        destination: `${backendBase}/:path*`,
+      },
+    ];
+  },
   async headers() {
     const isProd = process.env.NODE_ENV === "production";
     const enableHsts = isProd && String(process.env.ENABLE_HSTS || "").trim() === "1";
