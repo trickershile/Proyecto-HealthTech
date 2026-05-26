@@ -6,7 +6,7 @@ import { useState } from 'react';
  *
  * Responsabilidades:
  * - Mantener el estado de la IA (idle/processing/talking/warning/alert).
- * - Enviar la pregunta al gateway del frontend (POST /api/chat/stream).
+ * - Enviar la pregunta al gateway del frontend (POST /gateway/chat/stream).
  * - Leer streaming SSE y ensamblar el texto final incrementalmente.
  * - Actualizar HUD/indicadores de la interfaz.
  *
@@ -113,13 +113,13 @@ export function useQuantumLogic() {
     setInteraction('none');
 
     try {
-      // Payload que consume el gateway Next (/api/chat/stream).
+      // Payload que consume el gateway Next (/gateway/chat/stream).
       const payload = {
         pregunta: trimmed,
       };
 
       // Llamada al gateway (server-side) que reenvía al backend con X-API-Key.
-      const res = await fetch(`/api/chat/stream`, {
+      const res = await fetch(`/gateway/chat/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

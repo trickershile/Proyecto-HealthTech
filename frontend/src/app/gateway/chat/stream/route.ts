@@ -1,16 +1,3 @@
-/**
- * API Gateway (Next.js) para streaming del chat.
- *
- * Por qué existe:
- * - El navegador NO debe conocer ni enviar la INTERNAL_API_KEY.
- * - Esta ruta corre en el servidor de Next y reenvía al backend FastAPI agregando X-API-Key.
- * - Devuelve el body SSE tal cual, para que el cliente pueda "ir armando" la respuesta.
- *
- * Flujo:
- * 1) Valida payload (pregunta <= 200 chars).
- * 2) Hace fetch al backend (/chat/stream) con X-API-Key.
- * 3) Retorna Response con Content-Type text/event-stream.
- */
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -37,8 +24,6 @@ function signJwtHS256(payload: Record<string, unknown>, secret: string) {
 }
 
 function loadParentEnvIfMissing(keys: string[]) {
-  // En monorepo, Next corre dentro de /frontend y no siempre carga el .env.local del root.
-  // Esto intenta leer ../.env.local sólo si faltan keys.
   const missing = keys.filter((k) => !process.env[k]);
   if (missing.length === 0) return;
   const envPath = path.join(process.cwd(), "..", ".env.local");
@@ -59,7 +44,6 @@ function loadParentEnvIfMissing(keys: string[]) {
 }
 
 async function readJsonBody(request: Request): Promise<any> {
-  // Evita fallos de request.json() en algunos clientes/headers: lee text y luego parsea.
   const raw = await request.text().catch(() => "");
   if (!raw) return {};
   try {
@@ -67,6 +51,16 @@ async function readJsonBody(request: Request): Promise<any> {
   } catch {
     return {};
   }
+}
+
+function getBackendBaseUrl(request: Request): string {
+  const envBase = String(process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "").trim();
+  if (envBase) return envBase.replace(/\/$/, "");
+  if (process.env.NODE_ENV === "production") {
+    const origin = new URL(request.url).origin;
+    return `${origin}/api`;
+  }
+  return "http://127.0.0.1:8000";
 }
 
 export async function POST(request: Request) {
@@ -79,7 +73,7 @@ export async function POST(request: Request) {
       "NEXT_PUBLIC_BACKEND_URL",
     ]);
   }
-  const backendBaseUrl = (process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+  const backendBaseUrl = getBackendBaseUrl(request);
   const apiKey = process.env.INTERNAL_API_KEY || "";
   if (!apiKey) {
     return NextResponse.json({ error: "Falta INTERNAL_API_KEY en el servidor" }, { status: 500 });
@@ -103,8 +97,6 @@ export async function POST(request: Request) {
   }
 
   const payload = await readJsonBody(request);
-
-  // Validación mínima (también existe validación en el backend).
   const pregunta = String(payload?.pregunta ?? "").trim();
   if (!pregunta) {
     return NextResponse.json({ error: "pregunta requerida" }, { status: 400 });
@@ -120,14 +112,11 @@ export async function POST(request: Request) {
   const safeTimeout = Math.max(5000, Math.min(120000, Number.isFinite(timeoutMs) ? timeoutMs : 30000));
   const timer = setTimeout(() => controller.abort(), safeTimeout);
 
-  // Reenvía al backend agregando la API key interna.
   let upstream: Response;
   try {
     const jwtSecret = String(process.env.INTERNAL_JWT_SECRET || "").trim();
     const nowSec = Math.floor(Date.now() / 1000);
-    const jwt = jwtSecret
-      ? signJwtHS256({ iat: nowSec, exp: nowSec + 60, aud: "healthtech-backend" }, jwtSecret)
-      : "";
+    const jwt = jwtSecret ? signJwtHS256({ iat: nowSec, exp: nowSec + 60, aud: "healthtech-backend" }, jwtSecret) : "";
     upstream = await fetch(`${backendBaseUrl}/chat/stream`, {
       method: "POST",
       headers: {
@@ -152,11 +141,7 @@ export async function POST(request: Request) {
     const text = await upstream.text().catch(() => "");
     const safe = text.length > 240 ? text.slice(0, 240) + "…" : text;
     const publicMsg =
-      upstream.status >= 500
-        ? "Error interno"
-        : upstream.status === 429
-          ? "Rate limit excedido"
-          : "Solicitud inválida";
+      upstream.status >= 500 ? "Error interno" : upstream.status === 429 ? "Rate limit excedido" : "Solicitud inválida";
     return NextResponse.json({ error: expose ? (safe || publicMsg) : publicMsg }, { status: upstream.status });
   }
 
@@ -164,7 +149,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Respuesta sin cuerpo" }, { status: 502 });
   }
 
-  // Devuelve el stream SSE tal cual. El cliente parsea frames "event:" + "data:".
   return new Response(upstream.body, {
     status: 200,
     headers: {
@@ -175,3 +159,4 @@ export async function POST(request: Request) {
     },
   });
 }
+
