@@ -117,7 +117,8 @@ async def chat_stream(payload: ConsultarRequest) -> StreamingResponse:
         layout_meta: str = ""
         try:
             yield sse("step", {"title": "Resolviendo medicamento"})
-            info = resolver_medicamento_info(payload.pregunta, payload.modo)
+            await asyncio.sleep(0)
+            info = await run_in_threadpool(resolver_medicamento_info, payload.pregunta, payload.modo)
             yield sse("meta", info)
             final_meta = {
                 "nombre_medicamento": str(info.get("nombre_medicamento") or info.get("resolved_medication") or "").strip(),
@@ -145,6 +146,7 @@ async def chat_stream(payload: ConsultarRequest) -> StreamingResponse:
                 return
             yield sse("step", {"title": "Buscando en base farmacológica"})
             yield sse("step", {"title": "Generando respuesta"})
+            await asyncio.sleep(0)
             structured, out = await run_in_threadpool(
                 generar_respuesta_farmaceutica_structured_text,
                 payload.pregunta,
@@ -163,16 +165,27 @@ async def chat_stream(payload: ConsultarRequest) -> StreamingResponse:
             yield sse("done", final_meta)
         except Exception as exc:
             raw = str(exc or "")
-            is_rate_limit = "429" in raw or "rate limit" in raw.lower() or "too many requests" in raw.lower()
+            low = raw.lower()
+            expose = (os.getenv("EXPOSE_ERRORS") or "").strip() == "1"
+            is_rate_limit = "429" in raw or "rate limit" in low or "too many requests" in low
             fallback_message = (
                 "⚠️ El sistema central de Inteligencia Artificial se encuentra temporalmente con alta demanda "
                 "(Límite de cuota alcanzado). Por seguridad y resguardo del paciente, no podemos procesar su consulta "
                 "en este milisegundo. Por favor, intente nuevamente en unos minutos o consulte el vademécum impreso "
                 "de su centro de salud."
             )
-            safe_message = fallback_message if is_rate_limit else "Ocurrió un problema temporal al procesar su consulta. Por favor, intente nuevamente en unos minutos."
+            safe_message = (
+                fallback_message
+                if is_rate_limit
+                else (
+                    raw
+                    if expose and raw
+                    else "Ocurrió un problema temporal al procesar su consulta. Por favor, intente nuevamente en unos minutos."
+                )
+            )
             layout_meta = "conversacional"
             info_dict = locals().get("info") if isinstance(locals().get("info"), dict) else {}
+            yield sse("error", {"error": safe_message})
             yield sse("meta", {"layout": layout_meta})
             yield sse("step", {"title": "Alta demanda"})
             yield sse("chunk", {"delta": safe_message})
@@ -198,7 +211,7 @@ async def chat_stream(payload: ConsultarRequest) -> StreamingResponse:
         media_type="text/event-stream",
         headers={
             # Evita caches y buffering (útil en proxies).
-            "Cache-Control": "no-cache",
+            "Cache-Control": "no-cache, no-transform",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
         },
