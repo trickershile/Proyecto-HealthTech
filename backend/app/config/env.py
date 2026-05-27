@@ -20,7 +20,20 @@ def project_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
+def _is_cloud_runtime() -> bool:
+    return bool(
+        (os.getenv("RENDER") or "").strip()
+        or (os.getenv("RENDER_SERVICE_ID") or "").strip()
+        or (os.getenv("RAILWAY_ENVIRONMENT") or "").strip()
+        or (os.getenv("VERCEL") or "").strip()
+        or (os.getenv("VERCEL_ENV") or "").strip()
+        or (os.getenv("K_SERVICE") or "").strip()
+    )
+
+
 def load_env() -> None:
+    if _is_cloud_runtime():
+        return
     root = project_root()
     env_path = root / ".env"
     env_local_path = root / ".env.local"
@@ -32,19 +45,12 @@ def load_env() -> None:
 
 
 def get_supabase_client() -> Client:
-    supabase_url = clean_env_value(os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL")).rstrip("/")
-    supabase_key = (
-        clean_env_value(os.getenv("SUPABASE_SERVICE_ROLE_KEY"))
-        or clean_env_value(os.getenv("SUPABASE_SERVICE_KEY"))
-        or clean_env_value(os.getenv("SUPABASE_KEY"))
-        or clean_env_value(os.getenv("SUPABASE_ANON_KEY"))
-        or clean_env_value(os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY"))
-    )
+    supabase_url = clean_env_value(os.getenv("SUPABASE_URL")).rstrip("/")
+    supabase_key = clean_env_value(os.getenv("SUPABASE_SERVICE_ROLE_KEY"))
 
     if not supabase_url or not supabase_key:
         raise RuntimeError(
-            "Faltan credenciales de Supabase. Define SUPABASE_URL (o NEXT_PUBLIC_SUPABASE_URL) y "
-            "SUPABASE_SERVICE_ROLE_KEY (o SUPABASE_ANON_KEY) en tu .env/.env.local"
+            "Faltan credenciales de Supabase. Define SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY."
         )
 
     if not supabase_key.startswith("eyJ"):
@@ -53,4 +59,3 @@ def get_supabase_client() -> Client:
         )
 
     return create_client(supabase_url, supabase_key)
-
